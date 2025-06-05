@@ -41,7 +41,7 @@
 
 4. **Run the Application**
     ```
-    streamlit run signin.py
+    streamlit run authenticate.py
     ```
     By default, the authentication page runs at [http://localhost:8501](http://localhost:8501).  
     On successful sign-in, the main app (homepage) will open in a new tab.
