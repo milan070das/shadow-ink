@@ -23,12 +23,6 @@
 
 ---
 
-## 🖼️ Demo
-
-*Conceal. Reveal. Communicate in Silence.*
-
----
-
 ## 🛠️ Installation
 
 1. **Clone the Repository**
