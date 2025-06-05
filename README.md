@@ -63,14 +63,3 @@
 5. Download the resulting image or view the decoded message.
 
 ---
-
-## 🧑‍💻 Project Structure
-
-shadow-ink/
-│
-├── signin.py # Authentication (Sign In/Sign Up) page
-├── homepage.py # Main steganography app (encode/decode)
-├── users.db # SQLite database (created at runtime)
-├── background.png # Custom background image
-├── requirements.txt # Python dependencies
-└── README.md
