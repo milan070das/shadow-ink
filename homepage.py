@@ -30,10 +30,15 @@ background:rgba(0,0,0,0);
 """
 st.markdown(page_bg_img,unsafe_allow_html=True)
 
-def encode_message(image: Image.Image, message: str) -> Image.Image:
+def encode_message(image: Image.Image, message: str, passkey: str) -> Image.Image:
+    """
+    Encodes the message into the image, prepending the passkey and a separator.
+    """
     image = image.convert("RGB")
     data = np.array(image)
-    binary_message = ''.join([format(ord(char), '08b') for char in message]) + '1111111111111110'  # EOF marker
+    # Embed as "passkey:message"
+    full_message = f"{passkey}:{message}"
+    binary_message = ''.join([format(ord(char), '08b') for char in full_message]) + '1111111111111110'  # EOF marker
 
     flat_data = data.flatten()
     if len(binary_message) > len(flat_data):
@@ -46,7 +51,10 @@ def encode_message(image: Image.Image, message: str) -> Image.Image:
     encoded_image = Image.fromarray(encoded_data.astype('uint8'), 'RGB')
     return encoded_image
 
-def decode_message(image: Image.Image) -> str:
+def decode_message(image: Image.Image, passkey: str) -> str:
+    """
+    Decodes the message from the image, returns the message only if passkey matches.
+    """
     image = image.convert("RGB")
     data = np.array(image).flatten()
     bits = [str(pixel & 1) for pixel in data]
@@ -58,9 +66,18 @@ def decode_message(image: Image.Image) -> str:
             break
         char = chr(int(''.join(byte), 2))
         chars.append(char)
+        # Check for EOF marker
         if ''.join(format(ord(c), '08b') for c in chars[-2:]) == '1111111111111110':
-            return ''.join(chars[:-2])
-    return ''.join(chars)
+            break
+    decoded = ''.join(chars[:-2])
+    # Split at the first colon
+    if ':' not in decoded:
+        return "No passkey found or message is corrupted."
+    embedded_passkey, message = decoded.split(':', 1)
+    if embedded_passkey == passkey:
+        return message
+    else:
+        return "Incorrect passkey!"
 
 st.markdown(
     "*Steganography is the practice of hiding secret information within an ordinary medium such as an image, audio, or video. "
@@ -100,9 +117,12 @@ elif option == 'Decode':
         if uploaded_image:
             try:
                 image = Image.open(uploaded_image)
-                hidden_msg = decode_message(image)
-                st.success("Message decoded successfully:")
-                st.code(hidden_msg, language='text')
+                hidden_msg = decode_message(image, passkey)
+                if hidden_msg.startswith("Incorrect passkey!"):
+                    st.error(hidden_msg)
+                else:
+                    st.success("Message decoded successfully.")
+                    st.code(hidden_msg, language='text')
             except Exception as e:
                 st.error(f"Error: {e}")
         else:
