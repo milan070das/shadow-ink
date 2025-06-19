@@ -2,41 +2,19 @@ import base64
 import streamlit as st
 import sqlite3
 import subprocess
+from streamlit_option_menu import option_menu # Import the option_menu
 
 st.set_page_config(page_title="Shadow Ink - Sign in", layout="centered")
 
+# --- Helper Functions (Unchanged) ---
 def get_img_as_base64(file):
-    with open(file,"rb") as f:
-        data=f.read()
+    with open(file, "rb") as f:
+        data = f.read()
     return base64.b64encode(data).decode()
-
-img=get_img_as_base64("background.png")
-
-def get_img_as_base64(file):
-    with open(file,"rb") as f:
-        data=f.read()
-    return base64.b64encode(data).decode()
-
-img1=get_img_as_base64("background.png")
-
-page_bg_img=f"""
-<style>
-[data-testid="stAppViewContainer"] {{
-background-image:url("data:image/png;base64,{img1}");
-background-size: 100% 100%; /* Sets the background image width and height */
-background-repeat: no-repeat; /* Prevents the image from repeating */
-background-position: center; /* Centers the image */
-}}
-
-[data-testid="stHeader"] {{
-background:rgba(0,0,0,0);
-}}
-</style>
-"""
-st.markdown(page_bg_img,unsafe_allow_html=True)
 
 def perform_operation():
     subprocess.Popen(["streamlit", "run", "homepage.py"])
+
 def init_db():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -62,38 +40,70 @@ def authenticate_user(username, password):
     conn.close()
     return result is not None
 
+# --- Background Image (Partially Unchanged) ---
+# Note: The original code had a duplicate function definition for get_img_as_base64.
+# This has been corrected by removing the second definition.
+img = get_img_as_base64("background.png")
+
+page_bg_img = f"""
+<style>
+[data-testid="stAppViewContainer"] {{
+background-image:url("data:image/png;base64,{img}");
+background-size: 100% 100%;
+background-repeat: no-repeat;
+background-position: center;
+}}
+
+[data-testid="stHeader"] {{
+background:rgba(0,0,0,0);
+}}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+
 # === App Start ===
 init_db()
 
 st.title("Welcome to Shadow Ink✒")
 st.markdown("*Conceal. Reveal. Communicate in Silence.*")
 
-# Button toggles for Sign In and Sign Up
-col1, col2 = st.columns(2)
-with col1:
-    sign_in_clicked = st.button("Sign In")
-with col2:
-    sign_up_clicked = st.button("Sign Up")
-# sign_in_clicked = st.button("Sign In")
-# sign_up_clicked = st.button("Sign Up")
-# Session state to track which form to show
-if "auth_mode" not in st.session_state:
-    st.session_state.auth_mode = None
+# --- Replaced buttons with streamlit-option-menu ---
+# The option_menu is used here as a horizontal navigation bar[2][3].
+selected = option_menu(
+    menu_title=None,  # No title for the menu
+    options=["Sign In", "Sign Up"],
+    # Icons from Bootstrap Icons: https://icons.getbootstrap.com/ [4]
+    icons=["box-arrow-in-right", "person-plus"],
+    default_index=0,
+    orientation="horizontal",
+    styles={
+        "container": {"padding": "0!important", "background-color": "rgba(0,0,0,0)"},
+        "icon": {"color": "white", "font-size": "18px"},
+        "nav-link": {
+            "font-size": "16px",
+            "text-align": "center",
+            "margin": "0px",
+            "--hover-color": "#555",
+            "color": "#ddd",
+        },
+        "nav-link-selected": {"background-color": "#02ab21"},
+    }
+)
 
-if sign_in_clicked:
-    st.session_state.auth_mode = "sign_in"
-elif sign_up_clicked:
-    st.session_state.auth_mode = "sign_up"
-
-if st.session_state.auth_mode == "sign_in":
+# --- Conditional Forms based on menu selection ---
+# The logic now checks the string returned by option_menu instead of session_state[1].
+if selected == "Sign In":
     st.subheader("Sign In")
-    username = st.text_input("Username", key="signin_user")
-    password = st.text_input("Password", type="password", key="signin_pass")
-    if st.button("Proceed", key="signin_submit"):
+    with st.form("signin_form", clear_on_submit=False):
+        username = st.text_input("Username", key="signin_user")
+        password = st.text_input("Password", type="password", key="signin_pass")
+        signin_submit = st.form_submit_button("Proceed")
+
+    if signin_submit:
         if username and password:
             if authenticate_user(username, password):
                 st.success(f"Logged in as {username}")
-                # --- Inline JS redirect to landing page ---
                 perform_operation()
                 st.success("Welcome to Shadow Ink! Redirecting to the main app...")
                 st.markdown(
@@ -104,22 +114,23 @@ if st.session_state.auth_mode == "sign_in":
                     """,
                     unsafe_allow_html=True
                 )
-                # Note: "/landing" should match your multipage app's landing script
             else:
                 st.error("Invalid username or password.")
         else:
             st.warning("Please enter both username and password.")
 
-elif st.session_state.auth_mode == "sign_up":
+elif selected == "Sign Up":
     st.subheader("Sign Up")
-    new_user = st.text_input("New Username", key="signup_user")
-    new_pass = st.text_input("New Password", type="password", key="signup_pass")
-    if st.button("Proceed", key="signup_submit"):
+    with st.form("signup_form", clear_on_submit=True):
+        new_user = st.text_input("New Username", key="signup_user")
+        new_pass = st.text_input("New Password", type="password", key="signup_pass")
+        signup_submit = st.form_submit_button("Proceed")
+    
+    if signup_submit:
         if new_user and new_pass:
             try:
                 add_user(new_user, new_pass)
-                st.success("Account created successfully. Please sign in.")
-                st.session_state.auth_mode = "sign_in"
+                st.success("Account created successfully. Please select 'Sign In' to log in.")
             except sqlite3.IntegrityError:
                 st.error("Username already exists.")
             except Exception as e:
