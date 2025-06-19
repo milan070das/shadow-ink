@@ -2,11 +2,10 @@ import base64
 import streamlit as st
 import sqlite3
 import subprocess
-from streamlit_option_menu import option_menu # Import the option_menu
+from streamlit_option_menu import option_menu
 
 st.set_page_config(page_title="Shadow Ink - Sign in", layout="centered")
 
-# --- Helper Functions (Unchanged) ---
 def get_img_as_base64(file):
     with open(file, "rb") as f:
         data = f.read()
@@ -40,9 +39,6 @@ def authenticate_user(username, password):
     conn.close()
     return result is not None
 
-# --- Background Image (Partially Unchanged) ---
-# Note: The original code had a duplicate function definition for get_img_as_base64.
-# This has been corrected by removing the second definition.
 img = get_img_as_base64("background.png")
 
 page_bg_img = f"""
@@ -68,8 +64,6 @@ init_db()
 st.title("Welcome to Shadow Ink✒")
 st.markdown("*Conceal. Reveal. Communicate in Silence.*")
 
-# --- Replaced buttons with streamlit-option-menu ---
-# The option_menu is used here as a horizontal navigation bar[2][3].
 selected = option_menu(
     menu_title=None,  # No title for the menu
     options=["Sign In", "Sign Up"],
@@ -91,8 +85,6 @@ selected = option_menu(
     }
 )
 
-# --- Conditional Forms based on menu selection ---
-# The logic now checks the string returned by option_menu instead of session_state[1].
 if selected == "Sign In":
     st.subheader("Sign In")
     with st.form("signin_form", clear_on_submit=False):
