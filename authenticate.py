@@ -2,10 +2,11 @@ import base64
 import streamlit as st
 import sqlite3
 import subprocess
-from streamlit_option_menu import option_menu
+from streamlit_option_menu import option_menu # Import the option_menu
 
 st.set_page_config(page_title="Shadow Ink - Sign in", layout="centered")
 
+# --- Helper Functions (Unchanged) ---
 def get_img_as_base64(file):
     with open(file, "rb") as f:
         data = f.read()
@@ -64,6 +65,8 @@ init_db()
 st.title("Welcome to Shadow Ink✒")
 st.markdown("*Conceal. Reveal. Communicate in Silence.*")
 
+# --- Replaced buttons with streamlit-option-menu ---
+# The option_menu is used here as a horizontal navigation bar[2][3].
 selected = option_menu(
     menu_title=None,  # No title for the menu
     options=["Sign In", "Sign Up"],
@@ -72,16 +75,17 @@ selected = option_menu(
     default_index=0,
     orientation="horizontal",
     styles={
-        "container": {"padding": "0!important", "background-color": "rgba(0,0,0,0)"},
-        "icon": {"color": "white", "font-size": "18px"},
+        "container": {"padding": "0!important", "background-color": "transparent"},
+        "icon": {"font-size": "20px"},
         "nav-link": {
-            "font-size": "16px",
+            "font-size": "18px",
             "text-align": "center",
-            "margin": "0px",
-            "--hover-color": "#555",
-            "color": "#ddd",
+            "margin": "0px 5px",
+            "padding": "10px 15px",
+            "--hover-color": "#444",
+            "border-radius": "8px",
         },
-        "nav-link-selected": {"background-color": "#02ab21"},
+        "nav-link-selected": {"background-color": "#FF4500", "color": "white"},
     }
 )
 
