@@ -14,7 +14,6 @@ def get_img_as_base64(file):
 
 img=get_img_as_base64("background.png")
 
-
 page_bg_img=f"""
 <style>
 
@@ -32,13 +31,17 @@ st.markdown(page_bg_img,unsafe_allow_html=True)
 
 def encode_message(image: Image.Image, message: str, passkey: str) -> Image.Image:
     """
-    Encodes the message into the image, prepending the passkey and a separator.
+    Encodes the message into the image, converting passkey and message characters to ASCII values before encoding,
+    prepending the passkey and a separator.
     """
     image = image.convert("RGB")
     data = np.array(image)
     # Embed as "passkey:message"
     full_message = f"{passkey}:{message}"
-    binary_message = ''.join([format(ord(char), '08b') for char in full_message]) + '1111111111111110'  # EOF marker
+    # Convert each character to its ASCII value and then to 8-bit binary
+    # This step ensures the passkey is also converted to ASCII format for encoding [1].
+    ascii_values = [ord(char) for char in full_message]
+    binary_message = ''.join([format(val, '08b') for val in ascii_values]) + '1111111111111110'  # EOF marker
 
     flat_data = data.flatten()
     if len(binary_message) > len(flat_data):
@@ -53,7 +56,8 @@ def encode_message(image: Image.Image, message: str, passkey: str) -> Image.Imag
 
 def decode_message(image: Image.Image, passkey: str) -> str:
     """
-    Decodes the message from the image, returns the message only if passkey matches.
+    Decodes the message from the image, converts ASCII values back to characters,
+    returns the message only if passkey matches.
     """
     image = image.convert("RGB")
     data = np.array(image).flatten()
@@ -64,12 +68,17 @@ def decode_message(image: Image.Image, passkey: str) -> str:
         byte = bits[i:i+8]
         if len(byte) < 8:
             break
-        char = chr(int(''.join(byte), 2))
-        chars.append(char)
-        # Check for EOF marker
-        if ''.join(format(ord(c), '08b') for c in chars[-2:]) == '1111111111111110':
+        char_val = int(''.join(byte), 2) # Convert 8 bits to an integer ASCII value
+        chars.append(char_val)
+        # Check for EOF marker (two bytes: 0xFFFE in binary, which are ASCII 255 and 254)
+        if len(chars) >= 2 and chars[-2] == 255 and chars[-1] == 254:
             break
-    decoded = ''.join(chars[:-2])
+
+    # Remove EOF marker
+    decoded_vals = chars[:-2]
+    # Convert ASCII values back to characters to reconstruct the message and passkey [1].
+    decoded = ''.join([chr(val) for val in decoded_vals])
+
     # Split at the first colon
     if ':' not in decoded:
         return "No passkey found or message is corrupted."
@@ -91,12 +100,13 @@ option = st.radio("Choose operation", ['Encode', 'Decode'])
 if option == 'Encode':
     uploaded_image = st.file_uploader("Upload Image (PNG/JPEG)", type=["png", "jpg", "jpeg"])
     message = st.text_area("Enter message to encode")
+    passkey = st.text_input("Enter passkey for decoding", type="password")
 
     if st.button("Encode"):
-        if uploaded_image and message:
+        if uploaded_image and message and passkey:
             try:
                 image = Image.open(uploaded_image)
-                encoded_img = encode_message(image, message)
+                encoded_img = encode_message(image, message, passkey)
 
                 buf = io.BytesIO()
                 encoded_img.save(buf, format='PNG')
@@ -108,13 +118,14 @@ if option == 'Encode':
             except Exception as e:
                 st.error(f"Error: {e}")
         else:
-            st.warning("Please upload an image and enter a message.")
+            st.warning("Please upload an image, enter a message, and a passkey.")
 
 elif option == 'Decode':
     uploaded_image = st.file_uploader("Upload Image to Decode", type=["png", "jpg", "jpeg"])
+    passkey = st.text_input("Enter passkey to decode", type="password")
 
     if st.button("Decode"):
-        if uploaded_image:
+        if uploaded_image and passkey:
             try:
                 image = Image.open(uploaded_image)
                 hidden_msg = decode_message(image, passkey)
@@ -126,4 +137,4 @@ elif option == 'Decode':
             except Exception as e:
                 st.error(f"Error: {e}")
         else:
-            st.warning("Please upload an image.")
+            st.warning("Please upload an image and enter the passkey.")
